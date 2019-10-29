@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix
 #print(device_lib.list_local_devices())
 
-CYCLE = 29
+CYCLE = 60
 MEASURE = 18
 STATE = 25
 MASK = [1, 1,        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
@@ -89,23 +89,23 @@ keep_prob = tf.placeholder(tf.float32)
 ## convl layer ##
 W_conv1 = weight_variable([1, STATE, 18, 32])  # kernel 5*5, channel is 1, out size 32
 b_conv1 = bias_variable([32])
-#h_conv1 = tf.nn.conv2d(xs_image, W_conv1, strides=[1, 1, 1, 1], padding="SAME")
-#h_active1 = tf.nn.tanh(h_conv1 + b_conv1)
-h_active1 = tf.nn.tanh(conv2d(xs_image, W_conv1) + b_conv1)
-h_pool1 = tf.nn.max_pool(h_active1, ksize=[1, 1, 1, 1], strides=[1, 1, 1, 1], padding="VALID")  # output size 14*14*32  3
+h_conv1 = tf.nn.conv2d(xs_image, W_conv1, strides=[1, 1, 1, 1], padding="SAME")
+h_active1 = tf.nn.tanh(h_conv1 + b_conv1)
+h_pool1 = tf.nn.max_pool(h_active1, ksize=[1, 2, 1, 1], strides=[1, 2, 1, 1], padding="VALID")  # output size 14*14*32  3
 ## conv2 layer ##
 W_conv2 = weight_variable([1, 1, 32, 64])  # kernel 5*5, in size 32, out size 64
 b_conv2 = bias_variable([64])
-# h_conv2 = tf.nn.conv2d(h_pool1, W_conv2, strides=[1, 1, 1, 1], padding="SAME")
-# h_active2 = tf.nn.tanh(h_conv2 + b_conv2)
-h_active2 = tf.nn.tanh(conv2d(h_pool1, W_conv2) + b_conv2)
-h_pool2 = tf.nn.max_pool(h_active2, ksize=[1, 1, 1, 1], strides=[1, 1, 1, 1], padding="VALID")  # output size 7*7*64
+h_conv2 = tf.nn.conv2d(h_pool1, W_conv2, strides=[1, 1, 1, 1], padding="SAME")
+h_active2 = tf.nn.tanh(h_conv2 + b_conv2)
+h_pool2 = tf.nn.max_pool(h_active2, ksize=[1, 2, 1, 1], strides=[1, 2, 1, 1], padding="VALID")  # output size 7*7*64
 ## funcl layer ##
 shape = h_pool2.get_shape().as_list()
-W_fc1 = weight_variable([48000, 1024])
+size_flat = shape[1] * shape[2] * shape[3]
+print("size_flat = {}".format(size_flat))
+W_fc1 = weight_variable([size_flat, 1024])
 b_fc1 = bias_variable([1024])
 # [n_samples,7,7,64]->>[n_samples, 7*7*64]
-h_pool2_flat = tf.reshape(h_pool2, [-1, 48000])
+h_pool2_flat = tf.reshape(h_pool2, [-1, size_flat])
 h_fc1 = tf.nn.relu(tf.matmul(h_pool2_flat, W_fc1) + b_fc1)
 h_fc1_drop = tf.nn.dropout(h_fc1, keep_prob)
 ## func2 layer ##
@@ -134,25 +134,25 @@ sess.run(tf.initialize_all_variables())
 
 
 #################优化神经网络##################################
-BATCH_SIZE = 50
+BATCH_SIZE = 100
 test_batch = dataset.test.next_batch(200)
 xs_test = test_batch[0].reshape(-1, (CYCLE + 1) * MEASURE * STATE)
 ys_test = test_batch[1]
-acc_test = numpy.zeros(200)
-acc_train = numpy.zeros(200)
+acc_test = numpy.zeros(2000)
+acc_train = numpy.zeros(2000)
 acci = 0
 variable_summaries(xs_test)
 
-for epoch in range(10000):
+for epoch in range(200000):
     if epoch < 500:
         ra = 1e-3
-    elif epoch < 1000:
-        ra = 5e-4
     elif epoch < 2000:
-        ra = 1e-4
+        ra = 5e-4
     elif epoch < 4000:
+        ra = 1e-4
+    elif epoch < 6000:
         ra = 3e-5
-    elif epoch < 8000:
+    elif epoch < 10000:
         ra = 1e-5
     else:
         ra = 1e-6
@@ -185,7 +185,7 @@ from matplotlib import pyplot as plt
 plt.title("Epoch-MSE plot")
 plt.xlabel("Epoch")
 plt.ylabel("MSE")
-x=np.arange(50)
+x=np.arange(2000)
 plt.plot(x, acc_test)
 plt.show()
 

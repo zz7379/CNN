@@ -23,15 +23,12 @@ test_image_D = sio.loadmat(test_image_path)
 test_images = test_image_D['dataset_error_aug']
 test_labels = test_image_D['label_error_aug']
 
-print(labels.shape)
-
-
-
-
-
 images,labels =  disorder_images(images, labels)
 test_images,test_labels = disorder_images(test_images, test_labels)
+
 np.save(r"./npy/images.npy",images)
 np.save(r"./npy/labels.npy",labels)
 np.save(r"./npy/test_images.npy",test_images)
 np.save(r"./npy/test_labels.npy",test_labels)
+
+print("train: image={}    labels={}\ntest: image={}    labels={}".format(images.shape, labels.shape, test_images.shape, test_labels.shape))

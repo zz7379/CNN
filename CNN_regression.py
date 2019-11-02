@@ -79,7 +79,7 @@ def variable_summaries(var):
 
 
 # define placeholder for inputs to network
-xs = tf.placeholder(tf.float32, [None, (CYCLE + 1) * MEASURE * STATE])  # 8*stride
+xs = tf.placeholder(tf.float32, [None, (CYCLE + 1) * MEASURE * STATE], name='xs')  # 8*stride
 ys = tf.placeholder(tf.float32, [None, 8])
 xs_image = tf.reshape(xs, [-1, (CYCLE + 1), STATE, MEASURE])
 # 定义dropout的输入，解决过拟合问题
@@ -120,7 +120,10 @@ tf.summary.scalar('mse', mse)
 #train_step = tf.train.GradientDescentOptimizer(1e-4).minimize(cross_entropy)
 rate = tf.placeholder(tf.float32)
 train_step = tf.train.AdamOptimizer(rate).minimize(mse)
-sess = tf.Session()
+gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.333)
+
+sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
+
 # important step
 
 # ##################Tensorboar_Summary############
@@ -150,9 +153,9 @@ for epoch in range(200000):
         ra = 5e-4
     elif epoch < 4000:
         ra = 1e-4
-    elif epoch < 6000:
-        ra = 3e-5
-    elif epoch < 10000:
+    elif epoch < 8000:
+        ra = 5e-5
+    elif epoch < 12000:
         ra = 1e-5
     else:
         ra = 1e-6
@@ -162,6 +165,7 @@ for epoch in range(200000):
 
 
     summary, _ = sess.run([merged, train_step], feed_dict={xs: xs_train, ys: ys_train, keep_prob: 0.5, rate: ra})
+    print(xs)
     #train_writer.add_summary(summary, epoch)
     if epoch % 100 == 0:
         # print(sess.run(prediction,feed_dict={xs: batch_xs}))

@@ -28,7 +28,7 @@ class ModelBase(object):
         raise NotImplementedError
 
     def logger(self):
-        tf.summary.scalar('loss', self.loss_ops())
+        tf.summary.scalar('loss', self.loss)
         merged = tf.summary.merge_all(name='logger')
         return merged
 

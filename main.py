@@ -1,6 +1,9 @@
 import numpy
-import model_cnn_regression
+from model import model_cnn_regression
 import dataset
+from model import model_dnn
+
+# tensorboard --logdir train:"C:\tflog\train",test:"C:\tflog\test"
 
 DEFAULT_OPTIONS = {'CYCLE': 60,
                    'MEASURE': 18,
@@ -11,7 +14,6 @@ DEFAULT_OPTIONS = {'CYCLE': 60,
                    'MAX_ITERATION': 200000,
                    'learning_step': [1000, 2000, 4000, 8000, 12000],
                    'learning_rate': [1e-3, 5e-4, 1e-4, 5e-5, 1e-5, 5e-6]}
-
 
 options = DEFAULT_OPTIONS
 MASK = [1, 1,    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
@@ -31,3 +33,5 @@ for i in range(18):
 dataset = dataset.read_data_sets(images, labels, test_images, test_labels)
 cnn = model_cnn_regression.ModelCnnRegression(mode='train', options=options, dataset=dataset)
 cnn.run()
+# dnn = model_dnn.ModelDnnRegression(mode='train', options=options, dataset=dataset)
+# dnn.run()

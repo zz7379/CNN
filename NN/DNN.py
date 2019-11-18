@@ -1,10 +1,8 @@
 # coding:utf-8
 import tensorflow as tf
 import numpy
-import input_data
-from tensorflow.python.client import device_lib
-import matplotlib.pyplot as plt
-from sklearn.metrics import confusion_matrix
+from old import input_data
+
 #print(device_lib.list_local_devices())
 
 CYCLE = 29

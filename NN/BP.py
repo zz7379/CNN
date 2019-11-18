@@ -4,10 +4,10 @@ learning_rate = 0.01
 train_steps = 1000
 
 import tensorflow as tf
-import tensorflow.examples.tutorials.mnist.input_data as input_data
 import numpy
 import matplotlib as plt
-import input_data
+from old import input_data
+
 CYCLE = 29
 MEASURE = 18
 STATE = 25

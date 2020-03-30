@@ -50,6 +50,7 @@ cnn = model_cnn_regression.ModelCnnRegression(mode='train', options=options, dat
 cnn.train()
 
 # test_rmse=0.00066437 test_rmse=0.00066437
+# test_rmse=0.00167494 test_rmse=0.00167494
 '''
 cnn.pred_input_x = ordered_test_images
 cnn.pred_input_y = ordered_test_labels

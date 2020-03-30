@@ -19,3 +19,9 @@ def piecewise_rate(it, learning_step, learning_rate):
         if learning_step[i] <= it < learning_step[i+1]:
             return learning_rate[i]
     return learning_rate[section]
+
+
+def print_tensor_name():
+    tensor_name_list = [tensor.name for tensor in tf.get_default_graph().as_graph_def().node]
+    for tensor_name in tensor_name_list:
+        print(tensor_name, '\n')

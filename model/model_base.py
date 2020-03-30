@@ -14,7 +14,6 @@ class ModelBase(object):
         gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.7)
         self.sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
 
-
     def input_ops(self):
         raise NotImplementedError
 
@@ -35,17 +34,21 @@ class ModelBase(object):
     def loss_ops(self):
         raise NotImplementedError
 
-    def run(self):
+    def train(self):
         raise NotImplementedError
 
-    def save(self, ckpt_name):
+    def predict(self):
+        raise NotImplementedError
+
+    def save(self):
         self.saver = tf.train.Saver()
-        self.saver.save(self.sess, "./ckpt/{}".format(ckpt_name))
+        self.saver.save(self.sess, "./ckpt/{}".format(self.ckpt_name))
 
     def load(self):
-        assert self.mode in ['load_train', 'test']
-        self.loader = tf.train.import_meta_graph("./ckpt/{}".format(self.ckpt_name))
-        self.loader.restore(self.sess, tf.train.latest_checkpoint('./ckpt', self.ckpt_name))
+        # assert self.mode in ['load_train', 'test']
+        # path = tf.train.latest_checkpoint('./ckpt', self.ckpt_name)
+        self.loader = tf.train.import_meta_graph("./ckpt/{}.meta".format(self.ckpt_name))
+        self.loader.restore(sess=self.sess, save_path="./ckpt/{}".format(self.ckpt_name))
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.sess.close()

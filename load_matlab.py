@@ -1,4 +1,4 @@
-from  Lib.mat2npy import mat2npy
+from Lib.mat2npy import mat2npy
 import numpy as np
 
 

@@ -1,8 +1,8 @@
 import tensorflow as tf
 import numpy
-import model_base
+from model import model_base
 from Lib.misc import weight_variable, bias_variable, piecewise_rate
-from tensorflow.contrib import slim
+
 
 # tensorboard --logdir train:"C:\tflog\train",test:"C:\tflog\test"
 

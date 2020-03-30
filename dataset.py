@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import numpy
+import numpy as np
 
 
 def extract_images(data):
@@ -9,15 +9,21 @@ def extract_images(data):
 
 
 class DataSet(object):
-    def __init__(self, images, labels):
+    def __init__(self, images, labels, fake_data=0):
         assert images.shape[0] == labels.shape[0]
         self._num_examples = images.shape[0]
-        # Convert from [0, 255] -> [0.0, 1.0].
-        images = images.astype(numpy.float32)
-        self._images = images
+        images = images.astype(np.float32)
+        self._images = np.where(np.isnan(images), 0, images)
         self._labels = labels
         self._epochs_completed = 0
         self._index_in_epoch = 0
+        if fake_data:
+            #self.images = [numpy.random.rand() for i in enumerate(self.images)]
+            #numpy.where(1, self.images, numpy.random.rand())
+            for i in range(self.images.shape[0]):
+               # self.labels[i] = numpy.sum(self.images[i,:])
+               self.labels[i] = np.sum(self.images[i])/100
+
 
 
     @property
@@ -44,8 +50,8 @@ class DataSet(object):
             # Finished epoch
             self._epochs_completed += 1
             # Shuffle the data
-            perm = numpy.arange(self._num_examples)
-            numpy.random.shuffle(perm)
+            perm = np.arange(self._num_examples)
+            np.random.shuffle(perm)
             self._images = self._images[perm]
             self._labels = self._labels[perm]
             # Start next epoch
@@ -56,7 +62,7 @@ class DataSet(object):
         return self._images[start:end], self._labels[start:end]
 
 
-def read_data_sets(images, labels, test_images, test_labels, train_ratio=0.75):
+def read_data_sets(images, labels, test_images, test_labels, train_ratio=0.75, fake_data=0):
     class DataSets(object):
         pass
 
@@ -72,9 +78,9 @@ def read_data_sets(images, labels, test_images, test_labels, train_ratio=0.75):
     validation_images = Train_Images[TRAIN_SIZE:]
     validation_labels = Train_Labels[TRAIN_SIZE:]
 
-    data_sets.train = DataSet(train_images, train_labels)
-    data_sets.validation = DataSet(validation_images, validation_labels)
-    data_sets.test = DataSet(test_images, test_labels)
+    data_sets.train = DataSet(train_images, train_labels, fake_data)
+    data_sets.validation = DataSet(validation_images, validation_labels, fake_data)
+    data_sets.test = DataSet(test_images, test_labels, fake_data)
 
     print("train_size = {}  test_size = {}".format(images.shape[0], test_images.shape[0]))
     return data_sets

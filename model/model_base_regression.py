@@ -65,9 +65,8 @@ class ModelBaseRegression(model_base.ModelBase):
         return train_op
 
     def train(self, trainer=None):
-        if trainer == None:
+        if trainer == None: # 事实上该条件为 如果不是finetune
             trainer = self.trainer
-        self.sess.run(tf.initialize_all_variables())
         x_tensor = tf.get_default_graph().get_tensor_by_name("x:0")
         y_tensor = tf.get_default_graph().get_tensor_by_name("y:0")
         rate = tf.get_default_graph().get_tensor_by_name("rate:0")
@@ -75,6 +74,7 @@ class ModelBaseRegression(model_base.ModelBase):
         acc_test = numpy.zeros(2000)
         acc_train = numpy.zeros(2000)
         acc_index = 0
+        self.sess.run(tf.initialize_all_variables())
         for it in range(self.MAX_ITERATION):
             test_batch = self.dataset.test.next_batch(self.TEST_BATCH_SIZE)
             x_test = test_batch[0].reshape(-1, (self.CYCLE + 1) * self.MEASURE * self.STATE)
@@ -100,8 +100,11 @@ class ModelBaseRegression(model_base.ModelBase):
                     numpy.sqrt(acc_train[acc_index - 1]))
             if it % 2000 == 0 & self.options["DEBUG"]:
                 relative_error = (pred_test-y_test)/y_test
+                relative_error = numpy.where(relative_error > 10000 , 0, relative_error)
+                relative_error = numpy.where(relative_error < -10000, 0, relative_error)
+                # relative_error = map(lambda x: 0 if(numpy.isinf()) else x, relative_error)
                 print("relative_error = ", numpy.average(relative_error, axis=0))
-                #print(pred_test, '\n', '-'*50, '\n', y_test)
+                # print(pred_test, '\n', '-'*50, '\n', y_test)
 
         #self.save()
         with open('result.txt', 'a') as file_handle:  # 保存结果
@@ -129,4 +132,12 @@ class ModelBaseRegression(model_base.ModelBase):
         #var_list = tf.get_default_graph().get_tensor_by_name(r"fc_3/Variable/(Variable):0")
 
         self.train(trainer=finetune_train_op)
+
+    def feature_extract(self, image):
+        self.sess.run(tf.initialize_all_variables())
+        conv1_output_tnsr = tf.get_default_graph().get_tensor_by_name("conv1_out:0")
+        conv2_output_tnsr = tf.get_default_graph().get_tensor_by_name("conv2_out:0")
+        x_tensor = tf.get_default_graph().get_tensor_by_name("x:0")
+        feature = self.sess.run([conv1_output_tnsr], {x_tensor: image})
+        return numpy.reshape(feature, (numpy.shape(feature)[0], -1))
 

@@ -1,5 +1,5 @@
 import tensorflow as tf
-
+import numpy as np
 
 def weight_variable(shape):
     initial = tf.truncated_normal(shape, stddev=0.005)
@@ -25,3 +25,9 @@ def print_tensor_name():
     tensor_name_list = [tensor.name for tensor in tf.get_default_graph().as_graph_def().node]
     for tensor_name in tensor_name_list:
         print(tensor_name, '\n')
+
+def vectorial_angle(x, y):
+    Lx = np.sqrt(x.dot(x))
+    Ly = np.sqrt(y.dot(y))
+    cos_angle = x.dot(y) / (Lx * Ly)
+    return cos_angle

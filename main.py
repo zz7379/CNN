@@ -6,7 +6,7 @@ import tensorflow as tf
 import Lib.misc
 from model import model_dnn
 
-# tensorboard --logdir train:"C:\tflog\train",test:"C:\tflog\test"
+# tensorboard --logdir train:"C:\tflog\train",test:"C:\tflog\train"
 np.set_printoptions(threshold=1000)
 DEFAULT_OPTIONS = {'DEBUG': 0,
                    'CYCLE': 60,
@@ -15,7 +15,7 @@ DEFAULT_OPTIONS = {'DEBUG': 0,
                    'KEEP_PROB': 0.7,
                    'ckpt_name': 'CNN_1',
                    'BATCH_SIZE': 64,
-                   'TEST_BATCH_SIZE': 20,
+                   'TEST_BATCH_SIZE': 16,
                    'MAX_ITERATION': 20000,
                    'learning_step': [1000, 1500, 2000, 2500, 5000],
                    'learning_rate': [1e-4, 5e-5, 1e-5, 5e-6, 1e-6, 5e-7]}
@@ -31,7 +31,7 @@ MASK = [1, 1,    1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0]
 #MASK = [0, 0,    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 #MASK = [1, 1,    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
 
-options['MAX_ITERATION'] = 8000
+options['MAX_ITERATION'] = 4000
 images = np.load(r"./npy/images.npy")
 labels = np.load(r"./npy/labels.npy")
 test_images = np.load(r"./npy/test_images.npy")
@@ -76,27 +76,47 @@ print('ans '*50, ordered_test_labels)
 
 # finetune
 
-images = np.load(r"./npy/finetune_images.npy")
-labels = np.load(r"./npy/finetune_labels.npy")
-test_images = np.load(r"./npy/finetune_test_images.npy")
-test_labels = np.load(r"./npy/finetune_test_labels.npy")
-# test_labels[-10:, :] = test_labels[-20:-10, :]
+finetune_images = np.load(r"./npy/finetune_images.npy")
+finetune_labels = np.load(r"./npy/finetune_labels.npy")
+
+# images = np.load(r"./npy/test_images.npy")
+# labels = np.load(r"./npy/test_labels.npy")
+
+finetune_test_images = np.load(r"./npy/finetune_test_images.npy")
+finetune_test_labels = np.load(r"./npy/finetune_test_labels.npy")
+#test_labels[-10:, :] = test_labels[-20:-10, :]
 
 for i in range(18):
     if MASK[i] == 0:
-        images[:, :, :, i] = 0
-        test_images[:, :, :, i] = 0
+        finetune_images[:, :, :, i] = 0
+        finetune_test_images[:, :, :, i] = 0
 
 # 归一化 高度,Ma 参数 0~12000 -> 0~0.05  0~0.8->0~0.08
-test_images[:, :, :, 0] = test_images[:, :, :, 0] / 240000
-images[:, :, :, 0] = images[:, :, :, 0] / 240000
-test_images[:, :, :, 1] = test_images[:, :, :, 1] / 10
-images[:, :, :, 1] = images[:, :, :, 1] / 10
+finetune_test_images[:, :, :, 0] = finetune_test_images[:, :, :, 0] / 240000
+finetune_images[:, :, :, 0] = finetune_images[:, :, :, 0] / 240000
+finetune_test_images[:, :, :, 1] = finetune_test_images[:, :, :, 1] / 10
+finetune_images[:, :, :, 1] = finetune_images[:, :, :, 1] / 10
 
 options['learning_rate'] = [1e-8, 5e-9, 1e-9, 5e-10, 1e-10, 5e-11]
-#cnn.load()
-dataset_finetune = ds.read_data_sets(images, labels, test_images, test_labels, fake_data=0)
+# options['learning_rate'] = [0,0,0,0,0,0]
+
+dataset_finetune = ds.read_data_sets(finetune_images, finetune_labels, finetune_test_images, finetune_test_labels, fake_data=0)
 cnn.dataset = dataset_finetune
-cnn.finetune()
+#########cnn.finetune()
 
 
+
+CYC_NUM = options["CYCLE"]
+feature_images = cnn.feature_extract(images)
+feature_vector = np.reshape(feature_images[0: (CYC_NUM + 1) * 10], -1)
+
+for i in range(1, 30):
+    feature_vector = np.concatenate(feature_vector, np.reshape(feature_images[i * (CYC_NUM + 1) * 10: (i + 1) * (CYC_NUM + 1) * 10], -1))
+    print(feature_images.shape)
+
+feature_finetune_images = cnn.feature_extract(finetune_images)
+feature_finetune_vector = np.reshape(feature_finetune_images, -1)
+correlation = list([])
+for i in range(0, 30):
+    correlation[i] = Lib.misc.vectorial_angle(feature_vector(i), feature_finetune_vector)
+print(correlation)

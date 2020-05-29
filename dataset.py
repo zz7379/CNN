@@ -17,6 +17,12 @@ class DataSet(object):
         self._labels = labels
         self._epochs_completed = 0
         self._index_in_epoch = 0
+
+        perm = np.arange(self._num_examples)
+        np.random.shuffle(perm)
+        self._images = self._images[perm]
+        self._labels = self._labels[perm]
+
         if fake_data:
             #self.images = [numpy.random.rand() for i in enumerate(self.images)]
             #numpy.where(1, self.images, numpy.random.rand())

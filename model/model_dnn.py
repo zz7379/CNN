@@ -13,7 +13,8 @@ class ModelDnnRegression(model.model_base_regression.ModelBaseRegression):
         keep_prob_tensor = tf.placeholder(tf.float32, name="keep_prob_tensor")
         size_flat = (self.CYCLE + 1) * self.STATE * self.MEASURE
 
-        nn_shape = [size_flat, 1024, 512, 64, 32, 8]
+        #nn_shape = [size_flat, 1024, 512, 64, 32, 8]
+        nn_shape = [size_flat, 256, 256, 64, 32, 8]
         # func1 layer #
         w_fc1 = weight_variable([nn_shape[0], nn_shape[1]])
         b_fc1 = bias_variable([nn_shape[1]])

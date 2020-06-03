@@ -79,6 +79,12 @@ def read_data_sets(images, labels, test_images, test_labels, train_ratio=0.75, f
 
     test_images = extract_images(test_images)
     test_labels = test_labels
+
+    perm = np.arange(images.shape[0])
+    np.random.shuffle(perm)
+    Train_Images = Train_Images[perm]
+    Train_Labels = Train_Labels[perm]
+
     train_images = Train_Images[:TRAIN_SIZE]
     train_labels = Train_Labels[:TRAIN_SIZE]
     validation_images = Train_Images[TRAIN_SIZE:]

@@ -31,3 +31,7 @@ def vectorial_angle(x, y):
     Ly = np.sqrt(y.dot(y))
     cos_angle = x.dot(y) / (Lx * Ly)
     return cos_angle
+
+def euclidean_distance(x, y):
+    return np.sqrt(np.sum(np.square(x - y)))
+

@@ -1,5 +1,6 @@
 import numpy as np
 from model import model_cnn_regression
+from model import model_base_regression
 import dataset as ds
 from Lib.mat2npy import mat2npy
 import tensorflow as tf
@@ -12,26 +13,23 @@ DEFAULT_OPTIONS = {'DEBUG': 0,
                    'CYCLE': 60,
                    'MEASURE': 18,
                    'STATE': 25,
-                   'KEEP_PROB': 0.7,
+                   'KEEP_PROB': 0.8,
                    'ckpt_name': 'CNN_1',
-                   'BATCH_SIZE': 64,
-                   'TEST_BATCH_SIZE': 16,
+                   'BATCH_SIZE': 32,
+                   'TEST_BATCH_SIZE': 10,
                    'MAX_ITERATION': 20000,
-                   'learning_step': [1000, 1500, 2000, 2500, 5000],
-                   'learning_rate': [1e-4, 5e-5, 1e-5, 5e-6, 1e-6, 5e-7]}
+                   'learning_step': [1000, 1500, 2000, 2500, 4000],
+                   'learning_rate': [1e-4, 5e-6, 1e-6, 5e-7, 1e-7, 5e-8]}
 
 options = DEFAULT_OPTIONS
 
-with open('result.txt', 'a') as file_handle:  # 保存结果
-    file_handle.write("cnn+finetune")
-    file_handle.write('\n')
 
 # 测量参数设置 H/12000, Ma, Tt21 Pt21 Tt3 Pt3 Tt4 Pt4 Tt44 Pt44 Tt5 Pt5 Tt9 Pt9 NH W21 Wf F
 MASK = [1, 1,    1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0]
 #MASK = [0, 0,    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 #MASK = [1, 1,    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
 
-options['MAX_ITERATION'] = 4000
+
 images = np.load(r"./npy/images.npy")
 labels = np.load(r"./npy/labels.npy")
 test_images = np.load(r"./npy/test_images.npy")
@@ -49,39 +47,8 @@ test_images[:, :, :, 1] = test_images[:, :, :, 1] / 10
 images[:, :, :, 1] = images[:, :, :, 1] / 10
 
 
-ordered_test_images = test_images.reshape(test_images.shape[0], -1)
-ordered_test_labels = test_labels
-
-# print('images\n'*5, test_images)
-# print('labels\n'*5, test_labels)
-
-dataset = ds.read_data_sets(images, labels, test_images, test_labels, fake_data=0)
-
-cnn = model_cnn_regression.ModelCnnRegression(mode='train', options=options, dataset=dataset)
-cnn.train()
-
-# dnn = model_dnn.ModelDnnRegression(mode='train', options=options, dataset=dataset)
-# dnn.train()
-# test_rmse=0.00066437 test_rmse=0.00066437
-
-'''
-cnn.pred_input_x = ordered_test_images
-cnn.pred_input_y = ordered_test_labels
-cnn.mode = 'predict'
-
-print('res '*50, cnn.run())
-print('ans '*50, ordered_test_labels)
-'''
-
-
-# finetune
-
 finetune_images = np.load(r"./npy/finetune_images.npy")
 finetune_labels = np.load(r"./npy/finetune_labels.npy")
-
-# images = np.load(r"./npy/test_images.npy")
-# labels = np.load(r"./npy/test_labels.npy")
-
 finetune_test_images = np.load(r"./npy/finetune_test_images.npy")
 finetune_test_labels = np.load(r"./npy/finetune_test_labels.npy")
 #test_labels[-10:, :] = test_labels[-20:-10, :]
@@ -97,26 +64,156 @@ finetune_images[:, :, :, 0] = finetune_images[:, :, :, 0] / 240000
 finetune_test_images[:, :, :, 1] = finetune_test_images[:, :, :, 1] / 10
 finetune_images[:, :, :, 1] = finetune_images[:, :, :, 1] / 10
 
-options['learning_rate'] = [1e-8, 5e-9, 1e-9, 5e-10, 1e-10, 5e-11]
+finetune_whole_images = np.concatenate((finetune_images, finetune_test_images), axis=0)
+finetune_whole_labels = np.concatenate((finetune_labels, finetune_test_labels), axis=0)
+
 # options['learning_rate'] = [0,0,0,0,0,0]
 
-dataset_finetune = ds.read_data_sets(finetune_images, finetune_labels, finetune_test_images, finetune_test_labels, fake_data=0)
-cnn.dataset = dataset_finetune
-#########cnn.finetune()
+# ------------------------------------------------------------
+images30 = []
+labels30 = []
+for i in range(30):
+    for j in range(10):
+        if images30 == []:
+            images30 = np.reshape(images[30 * 10 + i * 610 + j], (1, 61, 25, 18))
+            labels30 = np.reshape(labels[30 * 10 + i * 610 + j], (1, 8))
+        else:
+            images30 = np.concatenate((images30, np.reshape(images[30 * 10 + i * 610 + j], (1, 61, 25, 18))))
+            labels30 = np.concatenate((labels30, np.reshape(labels[30 * 10 + i * 610 + j], (1, 8))))
+test_images30 = []
+test_labels30 = []
+for j in range(10):
+    if test_images30 == []:
+        test_images30 = np.reshape(test_images[30 * 10 + j], (1, 61, 25, 18))
+        test_labels30 = np.reshape(test_labels[30 * 10 + j], (1, 8))
+    else:
+        test_images30 = np.concatenate((test_images30, np.reshape(test_images[30 * 10 + j], (1, 61, 25, 18))))
+        test_labels30 = np.concatenate((test_labels30, np.reshape(test_labels[30 * 10 + j], (1, 8))))
+options['MAX_ITERATION'] = 4000
+print(np.average(test_labels30, 0))
+
+# -----------------------train--------------------------------
+#
+dataset = ds.read_data_sets(images, labels, test_images30, test_labels30, fake_data=0)
+
+cnn = model_cnn_regression.ModelCnnRegression(mode='load',options=options, dataset=dataset)
+cnn.BATCH_SIZE = 10
+cnn.TEST_BATCH_SIZE = 10
+#cnn.train()
 
 
+cnn.KEEP_PROB = 0.7
+cnn.learning_rate = [1e-6, 5e-7, 1e-7, 5e-8, 1e-8, 5e-9]
 
-CYC_NUM = options["CYCLE"]
-feature_images = cnn.feature_extract(images)
-feature_vector = np.reshape(feature_images[0: (CYC_NUM + 1) * 10], -1)
+test_x = np.reshape(test_images30[2], (-1, (cnn.CYCLE + 1) * cnn.MEASURE * cnn.STATE))
+test_y = np.reshape(test_labels30[2], (1, 8))
+pred_y = cnn.predict(test_x, test_y)
+print(test_y)
+print(pred_y)
 
-for i in range(1, 30):
-    feature_vector = np.concatenate(feature_vector, np.reshape(feature_images[i * (CYC_NUM + 1) * 10: (i + 1) * (CYC_NUM + 1) * 10], -1))
-    print(feature_images.shape)
 
-feature_finetune_images = cnn.feature_extract(finetune_images)
-feature_finetune_vector = np.reshape(feature_finetune_images, -1)
-correlation = list([])
-for i in range(0, 30):
-    correlation[i] = Lib.misc.vectorial_angle(feature_vector(i), feature_finetune_vector)
-print(correlation)
+# -----------------------semi supervised-----------------
+
+
+# --------------------finetune--------------------------------
+# best_match = [i for i in range(10)]
+# for i in range(np.shape(best_match)[0]):
+#     if i == 0:
+#         best_match_images = images[best_match[0] * 610 + 300: best_match[0] * 610 + 310]
+#         best_match_labels = labels[best_match[0] * 610 + 300: best_match[0] * 610 + 310]
+#     else:
+#         best_match_images = np.concatenate((best_match_images,
+#                                            images[best_match[i] * 610 + 300: best_match[i] * 610 + 310]), axis=0)
+#         best_match_labels = np.concatenate((best_match_labels,
+#                                            labels[best_match[i] * 610 + 300: best_match[i] * 610 + 310]), axis=0)
+#
+# dataset_finetune = ds.read_data_sets(best_match_images, best_match_labels, test_images30, test_labels30, fake_data=0)
+# cnn = model_cnn_regression.ModelCnnRegression(mode='train', options=options, dataset=dataset_finetune)
+#
+# cnn.KEEP_PROB = 0.8
+# cnn.learning_rate = [1e-6, 5e-7, 1e-7, 5e-8, 1e-8, 5e-9]
+# cnn.finetune()
+# --------------------------cycle_match-------------------------------
+# cycle_score = np.zeros(61)
+# feature_test_images30 = []
+# for i in range(10):
+#     if feature_test_images30 == []:
+#         feature_test_images30 = cnn.feature_extract(np.reshape(test_images30[i], (1, -1)))
+#     else:
+#         feature_test_images30 = np.concatenate((feature_test_images30, cnn.feature_extract(np.reshape(test_images30[i], (1, -1)))))
+# for i in range(np.shape(images)[0]):
+#     feature_temp = cnn.feature_extract(np.reshape(images[i], (1, -1)))
+#     sum_cor = 0
+#     for j in range(10):
+#         sum_cor += Lib.misc.vectorial_angle(feature_test_images30[j], feature_temp.reshape(-1))
+#     cycle_score[i % 610 // 10] += sum_cor
+# print(np.argsort(cycle_score)[::-1])
+
+# --------------------------engine_match-------------------------------
+cycle_score = np.zeros(30)
+feature_test_images30 = []
+for i in range(10):
+    if feature_test_images30 == []:
+        feature_test_images30 = cnn.feature_extract(np.reshape(test_images30[i], (1, -1)))
+    else:
+        feature_test_images30 = np.concatenate((feature_test_images30, cnn.feature_extract(np.reshape(test_images30[i], (1, -1)))))
+for i in range(np.shape(images)[0]):
+    feature_temp = cnn.feature_extract(np.reshape(images[i], (1, -1)))
+    sum_cor = 0
+    for j in range(10):
+        sum_cor += Lib.misc.vectorial_angle(feature_test_images30[j], feature_temp.reshape(-1))
+    cycle_score[i // 610] += sum_cor
+print(np.argsort(cycle_score)[::-1])
+
+# --------------------feature_extract_for_finetune-------------------------
+#
+# CYC_NUM = options["CYCLE"]
+# DIAG_CYC = 30
+# feature_vector = []
+# feature_finetune_vector = []
+# for i in range(30):
+#     for j in range(10):
+#         feature_images = cnn.feature_extract(images[DIAG_CYC * 10 + i * 610 + j])
+#         if feature_vector == []:
+#             feature_vector = np.reshape(feature_images, (1, -1))
+#         else:
+#             feature_vector = np.concatenate((feature_vector, np.reshape(feature_images, (1, -1))))
+#
+# for j in range(10):
+#     feature_finetune_images = cnn.feature_extract(test_images[DIAG_CYC * 10 + j])
+#     if feature_finetune_vector == []:
+#         feature_finetune_vector = np.reshape(feature_finetune_images, (1, -1))
+#     else:
+#         feature_finetune_vector = np.concatenate((feature_finetune_vector, np.reshape(feature_finetune_images, (1, -1))))
+#
+# correlation_angle = list([])
+# correlation_distance = list([])
+# sum_correlation_angle = 0
+# sum_correlation_distance = 0
+# for i in range(0, feature_vector.shape[0]):
+#     for j in range(10):
+#         sum_correlation_angle += Lib.misc.vectorial_angle(feature_vector[i], feature_finetune_vector[j])
+#         sum_correlation_distance += Lib.misc.euclidean_distance(feature_vector[i], feature_finetune_vector[j])
+#     if i % 10 == 9:
+#         correlation_angle.append(sum_correlation_angle / 100)
+#         sum_correlation_angle = 0
+#         correlation_distance.append(sum_correlation_distance / 100)
+#         sum_correlation_distance = 0
+#
+# print("Correlation_angle = ", correlation_angle)
+# print("Index = ", np.argsort(correlation_angle)[::-1])
+# print("Correlation_distance = ", correlation_distance)
+# print("Index = ", np.argsort(correlation_distance))
+# # best match 11,9, 16,7, 15,22,14,12,1, 13,  6,  8, 10, 18, 28, 25, 23,4, 27, 29, 20,  3, 26, 24,  2, 19, 21, 17,0,  5
+
+# --------------------feature extract for semi-supervised learning-------------------------
+# feature_ssr_vector = []
+# for i in range(np.shape(images)[0]):
+#     print(i)
+#     feature_images = cnn.feature_extract(images[i])
+#     if i == 0:
+#         feature_ssr_vector = np.reshape(feature_images, (1, -1))
+#     else:
+#         feature_ssr_vector = np.concatenate((feature_ssr_vector, np.reshape(feature_images, (1, -1))))
+#
+# np.save(r"./npy/image_conv1_feature.npy", feature_ssr_vector)

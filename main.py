@@ -26,13 +26,30 @@ options = DEFAULT_OPTIONS
 
 # 测量参数设置 H/12000, Ma, Tt21 Pt21 Tt3 Pt3 Tt4 Pt4 Tt44 Pt44 Tt5 Pt5 Tt9 Pt9 NH W21 Wf F
 MASK = [1, 1,    1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0]
+
+def read_images_mat(path):
+    data = np.load(path)
+    data_max, data_min, data0  = np.array([]), np.array([]), np.array([])
+    for ii in data.shape[3]:
+        if MASK[ii] == 0:
+            data[:, :, :, ii] = 0
+        data_max[ii] = max(data[:, :, :ii])
+        data_min[ii] = min(data[:, :, :ii])
+
+    for ii in data.shape[3]:
+        data0[:, :, :, ii] = (data[:, :, :, ii] - data_min[ii]) / (data_max[ii] - data_min[ii])
+
+    return data0
+
+
+
 #MASK = [0, 0,    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 #MASK = [1, 1,    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
 
 
-images = np.load(r"./npy/images.npy")
+images = read_images_mat(r"./npy/images.npy") # 30台
 labels = np.load(r"./npy/labels.npy")
-test_images = np.load(r"./npy/test_images.npy")
+test_images = read_images_mat(r"./npy/test_images.npy")# 1台
 test_labels = np.load(r"./npy/test_labels.npy")
 
 for i in range(18):
@@ -40,7 +57,9 @@ for i in range(18):
         images[:, :, :, i] = 0
         test_images[:, :, :, i] = 0
 
-# 归一化 高度,Ma 参数 0~12000 -> 0~0.05  0~0.8->0~0.08
+# 归一化 高度,Ma 参数 0~12000 -> 0~0.05  0~0.8->0~0.08       发动机1 循环1 误差1
+#                                                           发动机1 循环1 误差2。。。。。
+#                                                            发动机1 循环2 误差1
 test_images[:, :, :, 0] = test_images[:, :, :, 0] / 240000
 images[:, :, :, 0] = images[:, :, :, 0] / 240000
 test_images[:, :, :, 1] = test_images[:, :, :, 1] / 10
@@ -59,8 +78,8 @@ for i in range(18):
         finetune_test_images[:, :, :, i] = 0
 
 # 归一化 高度,Ma 参数 0~12000 -> 0~0.05  0~0.8->0~0.08
-finetune_test_images[:, :, :, 0] = finetune_test_images[:, :, :, 0] / 240000
-finetune_images[:, :, :, 0] = finetune_images[:, :, :, 0] / 240000
+finetune_test_images[:, :, :, 0] = finetune_test_images[:, :, :, 0] / 240000 # 全寿命
+finetune_images[:, :, :, 0] = finetune_images[:, :, :, 0] / 240000 # 只有前3000寿命循环
 finetune_test_images[:, :, :, 1] = finetune_test_images[:, :, :, 1] / 10
 finetune_images[:, :, :, 1] = finetune_images[:, :, :, 1] / 10
 

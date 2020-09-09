@@ -96,4 +96,3 @@ def read_data_sets(images, labels, test_images, test_labels, train_ratio=0.75, f
 
     print("train_size = {}  test_size = {}".format(images.shape[0], test_images.shape[0]))
     return data_sets
-

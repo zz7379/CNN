@@ -4,7 +4,7 @@ import numpy
 
 class ModelBase(object):
     def __init__(self, mode='train', options=None, dataset=None):
-        assert (mode in ['train', 'load', 'predict'])
+        assert (mode in ['start', 'load'])
         if options == None:
             raise ValueError
         self.dataset = dataset

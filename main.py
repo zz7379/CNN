@@ -6,9 +6,11 @@ from Lib.mat2npy import mat2npy
 import tensorflow as tf
 import Lib.misc
 from model import model_dnn
+import data_overview
+import gc
 
 # tensorboard --logdir train:"C:\tflog\train",test:"C:\tflog\train"
-np.set_printoptions(threshold=1000)
+np.set_printoptions(threshold=100)
 DEFAULT_OPTIONS = {'DEBUG': 0,
                    'CYCLE': 60,
                    'MEASURE': 18,
@@ -17,141 +19,92 @@ DEFAULT_OPTIONS = {'DEBUG': 0,
                    'ckpt_name': 'CNN_1',
                    'BATCH_SIZE': 32,
                    'TEST_BATCH_SIZE': 10,
-                   'MAX_ITERATION': 20000,
+                   'MAX_ITERATION': 6000,
                    'learning_step': [1000, 1500, 2000, 2500, 4000],
-                   'learning_rate': [1e-4, 5e-6, 1e-6, 5e-7, 1e-7, 5e-8]}
+                   'learning_rate': [1e-5, 5e-6, 1e-6, 5e-7, 1e-7, 5e-8]}
 
-options = DEFAULT_OPTIONS
-
-
-# 测量参数设置 H/12000, Ma, Tt21 Pt21 Tt3 Pt3 Tt4 Pt4 Tt44 Pt44 Tt5 Pt5 Tt9 Pt9 NH W21 Wf F
 MASK = [1, 1,    1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0]
+options = DEFAULT_OPTIONS
+options["MEASURE"] = 7
+#MASK = [0, 0,    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+#MASK = [1, 1,    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+# 测量参数设置 H/12000, Ma, Tt21 Pt21 Tt3 Pt3 Tt4 Pt4 Tt44 Pt44 Tt5 Pt5 Tt9 Pt9 NH W21 Wf F
+
 
 def read_images_mat(path):
     data = np.load(path)
-    data_max, data_min, data0  = np.array([]), np.array([]), np.array([])
-    for ii in data.shape[3]:
+    data[np.isnan(data)] = 0
+    data_max, data_min, data0 = np.zeros((options["MEASURE"])), np.zeros((options["MEASURE"])), np.zeros((data.shape[0],data.shape[1],data.shape[2],options["MEASURE"]))
+    for ii in range(options["MEASURE"]):
         if MASK[ii] == 0:
             data[:, :, :, ii] = 0
-        data_max[ii] = max(data[:, :, :ii])
-        data_min[ii] = min(data[:, :, :ii])
+        data_max[ii] = data[:, :, :, ii].max()
+        data_min[ii] = data[:, :, :, ii].min()
 
-    for ii in data.shape[3]:
-        data0[:, :, :, ii] = (data[:, :, :, ii] - data_min[ii]) / (data_max[ii] - data_min[ii])
-
+    for ii in range(options["MEASURE"]):
+        if MASK[ii]:
+            data0[:, :, :, ii] = (data[:, :, :, ii] - data_min[ii]) / (data_max[ii] - data_min[ii])
     return data0
+# ------------------------ merged ------------------
+# images = read_images_mat(r"./npy/images_merged.npy") # 30台 60
+# labels = np.load(r"./npy/labels_merged.npy")
+# test_images = read_images_mat(r"./npy/test_images.npy")# 1台
+# test_labels = np.load(r"./npy/test_labels.npy")
 
+# -------------------------- cpp -----------------
+images = read_images_mat(r"./npy/images_cpp.npy") # 30台 60
+labels = np.load(r"./npy/labels_cpp.npy")
+test_images = read_images_mat(r"./npy/images_cpp.npy")# 1台
+test_labels = np.load(r"./npy/labels_cpp.npy")
 
+# ------------------------------------------------------
+# images2 = read_images_mat(r"./npy/images.npy") # 30台
+# labels2 = np.load(r"./npy/labels.npy")
 
-#MASK = [0, 0,    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-#MASK = [1, 1,    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-
-
-images = read_images_mat(r"./npy/images.npy") # 30台
-labels = np.load(r"./npy/labels.npy")
-test_images = read_images_mat(r"./npy/test_images.npy")# 1台
-test_labels = np.load(r"./npy/test_labels.npy")
-
-for i in range(18):
-    if MASK[i] == 0:
-        images[:, :, :, i] = 0
-        test_images[:, :, :, i] = 0
-
-# 归一化 高度,Ma 参数 0~12000 -> 0~0.05  0~0.8->0~0.08       发动机1 循环1 误差1
-#                                                           发动机1 循环1 误差2。。。。。
-#                                                            发动机1 循环2 误差1
-test_images[:, :, :, 0] = test_images[:, :, :, 0] / 240000
-images[:, :, :, 0] = images[:, :, :, 0] / 240000
-test_images[:, :, :, 1] = test_images[:, :, :, 1] / 10
-images[:, :, :, 1] = images[:, :, :, 1] / 10
-
-
-finetune_images = np.load(r"./npy/finetune_images.npy")
+finetune_images = read_images_mat(r"./npy/finetune_images.npy")
 finetune_labels = np.load(r"./npy/finetune_labels.npy")
-finetune_test_images = np.load(r"./npy/finetune_test_images.npy")
+finetune_test_images = read_images_mat(r"./npy/finetune_test_images.npy")
 finetune_test_labels = np.load(r"./npy/finetune_test_labels.npy")
-#test_labels[-10:, :] = test_labels[-20:-10, :]
-
-for i in range(18):
-    if MASK[i] == 0:
-        finetune_images[:, :, :, i] = 0
-        finetune_test_images[:, :, :, i] = 0
-
-# 归一化 高度,Ma 参数 0~12000 -> 0~0.05  0~0.8->0~0.08
-finetune_test_images[:, :, :, 0] = finetune_test_images[:, :, :, 0] / 240000 # 全寿命
-finetune_images[:, :, :, 0] = finetune_images[:, :, :, 0] / 240000 # 只有前3000寿命循环
-finetune_test_images[:, :, :, 1] = finetune_test_images[:, :, :, 1] / 10
-finetune_images[:, :, :, 1] = finetune_images[:, :, :, 1] / 10
 
 finetune_whole_images = np.concatenate((finetune_images, finetune_test_images), axis=0)
 finetune_whole_labels = np.concatenate((finetune_labels, finetune_test_labels), axis=0)
 
-# options['learning_rate'] = [0,0,0,0,0,0]
-
+NUM_ENGNIE = 60
 # ------------------------------------------------------------
-images30 = []
+images30 = [] #循环数为30时的所有发动机的数据
 labels30 = []
-for i in range(30):
+for i in range(NUM_ENGNIE):
     for j in range(10):
-        if images30 == []:
-            images30 = np.reshape(images[30 * 10 + i * 610 + j], (1, 61, 25, 18))
+        if j == 0 & i == 0:
+            images30 = np.reshape(images[30 * 10 + i * 610 + j], (1, 61, 25, options["MEASURE"]))
             labels30 = np.reshape(labels[30 * 10 + i * 610 + j], (1, 8))
         else:
-            images30 = np.concatenate((images30, np.reshape(images[30 * 10 + i * 610 + j], (1, 61, 25, 18))))
+            images30 = np.concatenate((images30, np.reshape(images[30 * 10 + i * 610 + j], (1, 61, 25, options["MEASURE"]))))
             labels30 = np.concatenate((labels30, np.reshape(labels[30 * 10 + i * 610 + j], (1, 8))))
-test_images30 = []
+test_images30 = [] #循环数为30的目标发动机的数据
 test_labels30 = []
 for j in range(10):
-    if test_images30 == []:
-        test_images30 = np.reshape(test_images[30 * 10 + j], (1, 61, 25, 18))
+    if j == 0:
+        test_images30 = np.reshape(test_images[30 * 10 + j], (1, 61, 25, options["MEASURE"]))
         test_labels30 = np.reshape(test_labels[30 * 10 + j], (1, 8))
     else:
-        test_images30 = np.concatenate((test_images30, np.reshape(test_images[30 * 10 + j], (1, 61, 25, 18))))
+        test_images30 = np.concatenate((test_images30, np.reshape(test_images[30 * 10 + j], (1, 61, 25, options["MEASURE"]))))
         test_labels30 = np.concatenate((test_labels30, np.reshape(test_labels[30 * 10 + j], (1, 8))))
-options['MAX_ITERATION'] = 4000
-print(np.average(test_labels30, 0))
 
-# -----------------------train--------------------------------
-#
+print("avg test_labels30 = ", np.average(test_labels30, 0))
+
+# ---------------------------train------------------------
 dataset = ds.read_data_sets(images, labels, test_images30, test_labels30, fake_data=0)
 
-cnn = model_cnn_regression.ModelCnnRegression(mode='load',options=options, dataset=dataset)
-cnn.BATCH_SIZE = 10
+# del images, test_images
+# gc.collect()
+
+cnn = model_cnn_regression.ModelCnnRegression(mode='start', options=options, dataset=dataset)
+cnn.BATCH_SIZE = 32
 cnn.TEST_BATCH_SIZE = 10
-#cnn.train()
+cnn.train()
 
 
-cnn.KEEP_PROB = 0.7
-cnn.learning_rate = [1e-6, 5e-7, 1e-7, 5e-8, 1e-8, 5e-9]
-
-test_x = np.reshape(test_images30[2], (-1, (cnn.CYCLE + 1) * cnn.MEASURE * cnn.STATE))
-test_y = np.reshape(test_labels30[2], (1, 8))
-pred_y = cnn.predict(test_x, test_y)
-print(test_y)
-print(pred_y)
-
-
-# -----------------------semi supervised-----------------
-
-
-# --------------------finetune--------------------------------
-# best_match = [i for i in range(10)]
-# for i in range(np.shape(best_match)[0]):
-#     if i == 0:
-#         best_match_images = images[best_match[0] * 610 + 300: best_match[0] * 610 + 310]
-#         best_match_labels = labels[best_match[0] * 610 + 300: best_match[0] * 610 + 310]
-#     else:
-#         best_match_images = np.concatenate((best_match_images,
-#                                            images[best_match[i] * 610 + 300: best_match[i] * 610 + 310]), axis=0)
-#         best_match_labels = np.concatenate((best_match_labels,
-#                                            labels[best_match[i] * 610 + 300: best_match[i] * 610 + 310]), axis=0)
-#
-# dataset_finetune = ds.read_data_sets(best_match_images, best_match_labels, test_images30, test_labels30, fake_data=0)
-# cnn = model_cnn_regression.ModelCnnRegression(mode='train', options=options, dataset=dataset_finetune)
-#
-# cnn.KEEP_PROB = 0.8
-# cnn.learning_rate = [1e-6, 5e-7, 1e-7, 5e-8, 1e-8, 5e-9]
-# cnn.finetune()
 # --------------------------cycle_match-------------------------------
 # cycle_score = np.zeros(61)
 # feature_test_images30 = []
@@ -169,7 +122,7 @@ print(pred_y)
 # print(np.argsort(cycle_score)[::-1])
 
 # --------------------------engine_match-------------------------------
-cycle_score = np.zeros(30)
+engine_score = np.zeros(NUM_ENGNIE)
 feature_test_images30 = []
 for i in range(10):
     if feature_test_images30 == []:
@@ -181,11 +134,29 @@ for i in range(np.shape(images)[0]):
     sum_cor = 0
     for j in range(10):
         sum_cor += Lib.misc.vectorial_angle(feature_test_images30[j], feature_temp.reshape(-1))
-    cycle_score[i // 610] += sum_cor
-print(np.argsort(cycle_score)[::-1])
+    engine_score[i // 610] += sum_cor
+match_rank = np.argsort(engine_score)[::-1]
+print("match rank = ", match_rank)
+best_match = match_rank[:10]
+# -------------------- finetune --------------------------------
+for i in range(np.shape(best_match)[0]):
+    if i == 0:
+        best_match_images = images[best_match[0] * 610 + 300: best_match[0] * 610 + 310]
+        best_match_labels = labels[best_match[0] * 610 + 300: best_match[0] * 610 + 310]
+    else:
+        best_match_images = np.concatenate((best_match_images,
+                                           images[best_match[i] * 610 + 300: best_match[i] * 610 + 310]), axis=0)
+        best_match_labels = np.concatenate((best_match_labels,
+                                           labels[best_match[i] * 610 + 300: best_match[i] * 610 + 310]), axis=0)
+
+dataset_finetune = ds.read_data_sets(best_match_images, best_match_labels, test_images30, test_labels30, fake_data=0)
+# cnn = model_cnn_regression.ModelCnnRegression(mode='start', options=options, dataset=dataset_finetune)
+cnn.dataset = dataset_finetune
+cnn.KEEP_PROB = 0.8
+cnn.learning_rate = [1e-6, 5e-7, 1e-7, 5e-8, 1e-8, 5e-9]
+cnn.finetune()
 
 # --------------------feature_extract_for_finetune-------------------------
-#
 # CYC_NUM = options["CYCLE"]
 # DIAG_CYC = 30
 # feature_vector = []

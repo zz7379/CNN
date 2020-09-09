@@ -8,7 +8,7 @@ from Lib.misc import piecewise_rate, print_tensor_name
 
 
 class ModelBaseRegression(model_base.ModelBase):
-    def __init__(self, mode='train', options=None, dataset=None):
+    def __init__(self, mode='start', options=None, dataset=None):
         super().__init__(mode, options, dataset)
         self.mode = mode
         self.ckpt_name = options['ckpt_name']
@@ -22,8 +22,7 @@ class ModelBaseRegression(model_base.ModelBase):
         self.learning_rate = options['learning_rate']
         self.learning_step = options['learning_step']
         self.DEBUG = options['DEBUG']
-
-        if self.mode == "train":
+        if self.mode == "start":
             self.rate = tf.placeholder(tf.float32, name='rate')
             self.loss = self.loss_ops()
             self.trainer = self.train_ops()
@@ -102,8 +101,8 @@ class ModelBaseRegression(model_base.ModelBase):
                 [acc_test[acc_index], pred_test] = self.sess.run([loss_tensor, pred_tensor], {x_tensor: x_test, y_tensor: y_test, keep_prob_tensor: 1})
                 # self.test_writer.add_summary(summary, it)
                 acc_index = acc_index + 1
-                print(it, " test_mse={:.8f}  train_mse={:.8f}  test_rmse={:.8f}  train_rmse={:.8f}  ".format(
-                    acc_test[acc_index - 1], acc_train[acc_index - 1], numpy.sqrt(acc_test[acc_index - 1]),
+                print(it, "test_rmse={:.8f}  train_rmse={:.8f}  ".format(
+                    numpy.sqrt(acc_test[acc_index - 1]),
                     numpy.sqrt(acc_train[acc_index - 1])))
                 with open('test_rmse.txt', 'a') as file_handle:  # 保存结果
                     file_handle.write(str(numpy.sqrt(acc_test[acc_index - 1])))
@@ -117,7 +116,7 @@ class ModelBaseRegression(model_base.ModelBase):
                 with open('test_relative_error.txt', 'a') as file_handle:  # 保存结果
                     file_handle.write(str(numpy.average(relative_error, axis=0)))
                     file_handle.write('\n')
-            if it % 2000 == 0 & self.options["DEBUG"]:
+            if it % 2000 == 0 & self.options["DEBUG"] & it > 1:
                 print("relative_error = ", numpy.average(relative_error, axis=0))
                 # print(pred_test, '\n', '-'*50, '\n', y_test)
         self.saver = tf.train.Saver()

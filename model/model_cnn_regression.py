@@ -13,16 +13,16 @@ class ModelCnnRegression(model.model_base_regression.ModelBaseRegression):
         keep_prob_tensor = tf.placeholder(tf.float32, name="keep_prob_tensor")
         with tf.name_scope('conv_1'):
             #w_conv1 = weight_variable([1, self.STATE, 18, 32])
-            w_conv1 = weight_variable([3, 3, 18, 32])
-            b_conv1 = bias_variable([32])
+            w_conv1 = weight_variable([3, 3, self.MEASURE, 16])
+            b_conv1 = bias_variable([16])
             h_conv1 = tf.nn.conv2d(x_image, w_conv1, strides=[1, 1, 1, 1], padding="SAME")
             h_add1 = tf.add(h_conv1, b_conv1, name="conv1_add")
             h_active1 = tf.nn.relu(h_add1)
             h_pool1 = tf.nn.max_pool(h_active1, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1],
                                      padding="VALID", name="conv1_out")  # output size 14*14*32  3
         with tf.name_scope('conv_2'):
-            w_conv2 = weight_variable([3, 3, 32, 64])  # kernel 5*5, in size 32, out size 64
-            b_conv2 = bias_variable([64])
+            w_conv2 = weight_variable([3, 3, 16, 32])  # kernel 5*5, in size 32, out size 64
+            b_conv2 = bias_variable([32])
             h_conv2 = tf.nn.conv2d(h_pool1, w_conv2, strides=[1, 1, 1, 1], padding="SAME")
             h_add2 = tf.add(h_conv2, b_conv2, name="conv2_add")
             h_active2 = tf.nn.relu(h_add2)
